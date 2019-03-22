@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/AliyunContainerService/gpushare-device-plugin/pkg/gpu/nvidia"
+	"github.com/bnulwh/gpushare-device-plugin/pkg/gpu/nvidia"
 	log "github.com/golang/glog"
 )
 
