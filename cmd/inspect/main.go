@@ -9,17 +9,17 @@ import (
 )
 
 const (
-	resourceName         = "aliyun.com/gpu-mem"
-	countName            = "aliyun.com/gpu-count"
-	gpuCountKey          = "aliyun.accelerator/nvidia_count"
-	cardNameKey          = "aliyun.accelerator/nvidia_name"
-	gpuMemKey            = "aliyun.accelerator/nvidia_mem"
+	resourceName         = "shared-gpu/gpu-mem"
+	countName            = "shared-gpu/gpu-count"
+	gpuCountKey          = "shared-gpu/nvidia_count"
+	cardNameKey          = "shared-gpu/nvidia_name"
+	gpuMemKey            = "shared-gpu/nvidia_mem"
 	pluginComponentKey   = "component"
 	pluginComponentValue = "gpushare-device-plugin"
 
-	envNVGPUID        = "ALIYUN_COM_GPU_MEM_IDX"
-	envPodGPUMemory   = "ALIYUN_COM_GPU_MEM_POD"
-	envTOTALGPUMEMORY = "ALIYUN_COM_GPU_MEM_DEV"
+	envNVGPUID        = "SHARED_GPU_MEM_IDX"
+	envPodGPUMemory   = "SHARED_GPU_MEM_POD"
+	envTOTALGPUMEMORY = "SHARED_GPU_MEM_DEV"
 )
 
 func init() {

@@ -8,9 +8,9 @@ import (
 type MemoryUnit string
 
 const (
-	resourceName  = "aliyun.com/gpu-mem"
-	resourceCount = "aliyun.com/gpu-count"
-	serverSock    = pluginapi.DevicePluginPath + "aliyungpushare.sock"
+	resourceName  = "shared-gpu/gpu-mem"
+	resourceCount = "shared-gpu/gpu-count"
+	serverSock    = pluginapi.DevicePluginPath + "gpushare.sock"
 
 	OptimisticLockErrorMsg = "the object has been modified; please apply your changes to the latest version and try again"
 
@@ -22,13 +22,13 @@ const (
 	sandboxIDLabelKey           = "io.kubernetes.sandbox.id"
 
 	envNVGPU               = "NVIDIA_VISIBLE_DEVICES"
-	EnvResourceIndex       = "ALIYUN_COM_GPU_MEM_IDX"
-	EnvResourceByPod       = "ALIYUN_COM_GPU_MEM_POD"
-	EnvResourceByContainer = "ALIYUN_COM_GPU_MEM_CONTAINER"
-	EnvResourceByDev       = "ALIYUN_COM_GPU_MEM_DEV"
-	EnvAssignedFlag        = "ALIYUN_COM_GPU_MEM_ASSIGNED"
-	EnvResourceAssumeTime  = "ALIYUN_COM_GPU_MEM_ASSUME_TIME"
-	EnvResourceAssignTime  = "ALIYUN_COM_GPU_MEM_ASSIGN_TIME"
+	EnvResourceIndex       = "SHARED_GPU_MEM_IDX"
+	EnvResourceByPod       = "SHARED_GPU_MEM_POD"
+	EnvResourceByContainer = "SHARED_GPU_MEM_CONTAINER"
+	EnvResourceByDev       = "SHARED_GPU_MEM_DEV"
+	EnvAssignedFlag        = "SHARED_GPU_MEM_ASSIGNED"
+	EnvResourceAssumeTime  = "SHARED_GPU_MEM_ASSUME_TIME"
+	EnvResourceAssignTime  = "SHARED_GPU_MEM_ASSIGN_TIME"
 
 	GiBPrefix = MemoryUnit("GiB")
 	MiBPrefix = MemoryUnit("MiB")

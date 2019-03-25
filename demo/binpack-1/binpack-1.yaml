@@ -40,4 +40,4 @@ spec:
         resources:
           limits:
             # GiB
-            aliyun.com/gpu-mem: 2
+            shared-gpu/gpu-mem: 2
