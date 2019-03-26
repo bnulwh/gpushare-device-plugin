@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"runtime"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 )
 
 func StackTrace(all bool) string {
@@ -25,6 +25,6 @@ func StackTrace(all bool) string {
 }
 
 func coredump(fileName string) {
-	log.Infoln("Dump stacktrace to ", fileName)
+	log.Info("Dump stacktrace to ", fileName)
 	ioutil.WriteFile(fileName, []byte(StackTrace(true)), 0644)
 }

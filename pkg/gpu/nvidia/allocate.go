@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 	"golang.org/x/net/context"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +43,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	responses := pluginapi.AllocateResponse{}
 
-	log.Infoln("----Allocating GPU for gpu mem is started----")
+	log.Info("----Allocating GPU for gpu mem is started----")
 	var (
 		podReqGPU uint
 		found     bool
@@ -54,30 +54,28 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	for _, req := range reqs.ContainerRequests {
 		podReqGPU += uint(len(req.DevicesIDs))
 	}
-	log.Infof("RequestPodGPUs: %d", podReqGPU)
+	log.Info("RequestPodGPUs: %d", podReqGPU)
 
 	m.Lock()
 	defer m.Unlock()
-	log.Infoln("checking...")
+	log.Info("checking...")
 	pods, err := getCandidatePods()
 	if err != nil {
-		log.Infof("invalid allocation requst: Failed to find candidate pods due to %v", err)
+		log.Info("invalid allocation requst: Failed to find candidate pods due to %v", err)
 		return buildErrResponse(reqs, podReqGPU), nil
 	}
 
-	if log.V(4) {
-		for _, pod := range pods {
-			log.Infof("Pod %s in ns %s request GPU Memory %d with timestamp %v",
-				pod.Name,
-				pod.Namespace,
-				getGPUMemoryFromPodResource(pod),
-				getAssumeTimeFromPodAnnotation(pod))
-		}
+	for _, pod := range pods {
+		log.Info("Pod %s in ns %s request GPU Memory %d with timestamp %v",
+			pod.Name,
+			pod.Namespace,
+			getGPUMemoryFromPodResource(pod),
+			getAssumeTimeFromPodAnnotation(pod))
 	}
 
 	for _, pod := range pods {
 		if getGPUMemoryFromPodResource(pod) == podReqGPU {
-			log.Infof("Found Assumed GPU shared Pod %s in ns %s with GPU Memory %d",
+			log.Info("Found Assumed GPU shared Pod %s in ns %s with GPU Memory %d",
 				pod.Name,
 				pod.Namespace,
 				podReqGPU)
@@ -90,7 +88,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	if found {
 		id := getGPUIDFromPodAnnotation(assumePod)
 		if id < 0 {
-			log.Warningf("Failed to get the dev ", assumePod)
+			log.Warning("Failed to get the dev ", assumePod)
 		}
 
 		candidateDevID := ""
@@ -98,7 +96,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 			ok := false
 			candidateDevID, ok = m.GetDeviceNameByIndex(uint(id))
 			if !ok {
-				log.Warningf("Failed to find the dev for pod %v because it's not able to find dev with index %d",
+				log.Warning("Failed to find the dev for pod %v because it's not able to find dev with index %d",
 					assumePod,
 					id)
 				id = -1
@@ -133,30 +131,29 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 				// retry
 				pod, err := clientset.CoreV1().Pods(assumePod.Namespace).Get(assumePod.Name, metav1.GetOptions{})
 				if err != nil {
-					log.Warningf("Failed due to %v", err)
+					log.Warning("Failed due to %v", err)
 					return buildErrResponse(reqs, podReqGPU), nil
 				}
 				newPod = updatePodAnnotations(pod)
 				_, err = clientset.CoreV1().Pods(newPod.Namespace).Update(newPod)
 				if err != nil {
-					log.Warningf("Failed due to %v", err)
+					log.Warning("Failed due to %v", err)
 					return buildErrResponse(reqs, podReqGPU), nil
 				}
 			} else {
-				log.Warningf("Failed due to %v", err)
+				log.Warning("Failed due to %v", err)
 				return buildErrResponse(reqs, podReqGPU), nil
 			}
 		}
 
 	} else {
-		log.Warningf("invalid allocation requst: request GPU memory %d can't be satisfied.",
-			podReqGPU)
+		log.Warning("invalid allocation requst: request GPU memory %d can't be satisfied.", podReqGPU)
 		// return &responses, fmt.Errorf("invalid allocation requst: request GPU memory %d can't be satisfied", reqGPU)
 		return buildErrResponse(reqs, podReqGPU), nil
 	}
 
-	log.Infof("new allocated GPUs info %v", &responses)
-	log.Infoln("----Allocating GPU for gpu mem is ended----")
+	log.Info("new allocated GPUs info %v", &responses)
+	log.Info("----Allocating GPU for gpu mem is ended----")
 	// // Add this to make sure the container is created at least
 	// currentTime := time.Now()
 

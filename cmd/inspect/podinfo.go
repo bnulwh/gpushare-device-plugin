@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,17 +31,17 @@ func kubeInit() {
 		kubeconfigFile = path.Join(os.Getenv("HOME"), "/.kube/config")
 	}
 	if _, err := os.Stat(kubeconfigFile); err != nil {
-		log.Fatalf("kubeconfig %s failed to find due to %v, please set KUBECONFIG env", kubeconfigFile, err)
+		log.Critical("kubeconfig %s failed to find due to %v, please set KUBECONFIG env", kubeconfigFile, err)
 	}
 
 	var err error
 	restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigFile)
 	if err != nil {
-		log.Fatalf("Failed due to %v", err)
+		log.Critical("Failed due to %v", err)
 	}
 	clientset, err = kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		log.Fatalf("Failed due to %v", err)
+		log.Critical("Failed due to %v", err)
 	}
 }
 

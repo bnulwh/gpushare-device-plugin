@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/api/core/v1"
@@ -49,7 +49,7 @@ func buildAllNodeInfos(allPods []v1.Pod, nodes []v1.Node) ([]*NodeInfo, error) {
 			setUnit(info.gpuTotalMemory, info.gpuCount)
 			err := info.buildDeviceInfo()
 			if err != nil {
-				log.Warningf("Failed due to %v", err)
+				log.Warning("Failed due to %v", err)
 				continue
 			}
 		}
@@ -181,7 +181,7 @@ func (n *NodeInfo) getDeivceInfo(pod v1.Pod) (devIdx int, gpuMemory int) {
 		if found {
 			id, err = strconv.Atoi(value)
 			if err != nil {
-				log.Warningf("Failed to parse dev id %s due to %v for pod %s in ns %s",
+				log.Warning("Failed to parse dev id %s due to %v for pod %s in ns %s",
 					value,
 					err,
 					pod.Name,
@@ -189,7 +189,7 @@ func (n *NodeInfo) getDeivceInfo(pod v1.Pod) (devIdx int, gpuMemory int) {
 				id = -1
 			}
 		} else {
-			log.Warningf("Failed to get dev id %s for pod %s in ns %s",
+			log.Warning("Failed to get dev id %s for pod %s in ns %s",
 				pod.Name,
 				pod.Namespace)
 		}

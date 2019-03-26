@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -40,12 +40,12 @@ func NewNvidiaDevicePlugin(mps, healthCheck bool) *NvidiaDevicePlugin {
 		devList = append(devList, dev)
 	}
 
-	log.Infof("Device Map: %v", devNameMap)
-	log.Infof("Device List: %v", devList)
+	log.Info("Device Map: %v", devNameMap)
+	log.Info("Device List: %v", devList)
 
 	err := patchGPUCount(len(devList))
 	if err != nil {
-		log.Infof("Failed due to %v", err)
+		log.Info("Failed due to %v", err)
 	}
 
 	return &NvidiaDevicePlugin{
@@ -67,7 +67,7 @@ func (m *NvidiaDevicePlugin) GetDeviceNameByIndex(index uint) (name string, foun
 		for k, v := range m.devNameMap {
 			m.devIndxMap[v] = k
 		}
-		log.Infof("Get devIndexMap: %v", m.devIndxMap)
+		log.Info("Get devIndexMap: %v", m.devIndxMap)
 	}
 
 	name, found = m.devIndxMap[index]
@@ -216,18 +216,18 @@ func (m *NvidiaDevicePlugin) healthcheck() {
 func (m *NvidiaDevicePlugin) Serve() error {
 	err := m.Start()
 	if err != nil {
-		log.Infof("Could not start device plugin: %s", err)
+		log.Info("Could not start device plugin: %s", err)
 		return err
 	}
-	log.Infoln("Starting to serve on", m.socket)
+	log.Info("Starting to serve on", m.socket)
 
 	err = m.Register(pluginapi.KubeletSocket, resourceName)
 	if err != nil {
-		log.Infof("Could not register device plugin: %s", err)
+		log.Info("Could not register device plugin: %s", err)
 		m.Stop()
 		return err
 	}
-	log.Infoln("Registered device plugin with Kubelet")
+	log.Info("Registered device plugin with Kubelet")
 
 	return nil
 }

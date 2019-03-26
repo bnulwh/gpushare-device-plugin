@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"k8s.io/api/core/v1"
@@ -33,26 +33,26 @@ func kubeInit() {
 	var config *rest.Config
 
 	if _, err = os.Stat(kubeconfigFile); err != nil {
-		log.V(5).Infof("kubeconfig %s failed to find due to %v", kubeconfigFile, err)
+		log.Info("kubeconfig %s failed to find due to %v", kubeconfigFile, err)
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			log.Fatalf("Failed due to %v", err)
+			log.Critical("Failed due to %v", err)
 		}
 	} else {
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigFile)
 		if err != nil {
-			log.Fatalf("Failed due to %v", err)
+			log.Critical("Failed due to %v", err)
 		}
 	}
 
 	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Fatalf("Failed due to %v", err)
+		log.Critical("Failed due to %v", err)
 	}
 
 	nodeName = os.Getenv("NODE_NAME")
 	if nodeName == "" {
-		log.Fatalln("Please set env NODE_NAME")
+		log.Critical("Please set env NODE_NAME")
 	}
 
 }
@@ -65,7 +65,7 @@ func patchGPUCount(gpuCount int) error {
 
 	if val, ok := node.Status.Capacity[resourceCount]; ok {
 		if val.Value() == int64(gpuCount) {
-			log.Infof("No need to update Capacity %s", resourceCount)
+			log.Info("No need to update Capacity %s", resourceCount)
 			return nil
 		}
 	}
@@ -77,9 +77,9 @@ func patchGPUCount(gpuCount int) error {
 	// _, err = clientset.CoreV1().Nodes().PatchStatus(nodeName, []byte(content))
 	_, _, err = nodeutil.PatchNodeStatus(clientset.CoreV1(), types.NodeName(nodeName), node, newNode)
 	if err != nil {
-		log.Infof("Failed to update Capacity %s.", resourceCount)
+		log.Info("Failed to update Capacity %s.", resourceCount)
 	} else {
-		log.Infof("Updated Capacity %s successfully.", resourceCount)
+		log.Info("Updated Capacity %s successfully.", resourceCount)
 	}
 	return err
 }
@@ -109,18 +109,18 @@ func getPendingPodsInNode() ([]v1.Pod, error) {
 		return nil, fmt.Errorf("failed to get Pods assigned to node %v", nodeName)
 	}
 
-	log.V(5).Infof("all pod list %v", podList.Items)
+	log.Info("all pod list %v", podList.Items)
 
 	// if log.V(5) {
 	for _, pod := range podList.Items {
 		if pod.Spec.NodeName != nodeName {
-			log.Warningf("Pod name %s in ns %s is not assigned to node %s as expected, it's placed on node %s ",
+			log.Warning("Pod name %s in ns %s is not assigned to node %s as expected, it's placed on node %s ",
 				pod.Name,
 				pod.Namespace,
 				nodeName,
 				pod.Spec.NodeName)
 		} else {
-			log.Infof("list pod %s in ns %s in node %s and status is %s",
+			log.Info("list pod %s in ns %s in node %s and status is %s",
 				pod.Name,
 				pod.Namespace,
 				nodeName,
@@ -152,13 +152,11 @@ func getCandidatePods() ([]*v1.Pod, error) {
 		}
 	}
 
-	if log.V(4) {
-		for _, pod := range candidatePods {
-			log.Infof("candidate pod %s in ns %s with timestamp %d is found.",
-				pod.Name,
-				pod.Namespace,
-				getAssumeTimeFromPodAnnotation(pod))
-		}
+	for _, pod := range candidatePods {
+		log.Info("candidate pod %s in ns %s with timestamp %d is found.",
+			pod.Name,
+			pod.Namespace,
+			getAssumeTimeFromPodAnnotation(pod))
 	}
 
 	return makePodOrderdByAge(candidatePods), nil

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 
 	"github.com/NVIDIA/gpu-monitoring-tools/bindings/go/nvml"
 
@@ -19,7 +19,7 @@ var (
 
 func check(err error) {
 	if err != nil {
-		log.Fatalln("Fatal:", err)
+		log.Critical("Fatal:", err)
 	}
 }
 
@@ -37,7 +37,7 @@ func setGPUMemory(raw uint) {
 		v = raw / 1024
 	}
 	gpuMemory = v
-	log.Infof("set gpu memory: %d", gpuMemory)
+	log.Info("set gpu memory: %d", gpuMemory)
 }
 
 func getGPUMemory() uint {
@@ -61,22 +61,22 @@ func getDevices() ([]*pluginapi.Device, map[string]uint) {
 		check(err)
 		// realDevNames = append(realDevNames, d.UUID)
 		var id uint
-		log.Infof("Deivce %s's Path is %s", d.UUID, d.Path)
+		log.Info("Deivce %s's Path is %s", d.UUID, d.Path)
 		_, err = fmt.Sscanf(d.Path, "/dev/nvidia%d", &id)
 		check(err)
 		realDevNames[d.UUID] = id
 		// var KiB uint64 = 1024
-		log.Infof("# device Memory: %d", uint(*d.Memory))
+		log.Info("# device Memory: %d", uint(*d.Memory))
 		if getGPUMemory() == uint(0) {
 			setGPUMemory(uint(*d.Memory))
 		}
 		for j := uint(0); j < getGPUMemory(); j++ {
 			fakeID := generateFakeDeviceID(d.UUID, j)
 			if j == 0 {
-				log.Infoln("# Add first device ID: " + fakeID)
+				log.Info("# Add first device ID: " + fakeID)
 			}
 			if j == getGPUMemory()-1 {
-				log.Infoln("# Add last device ID: " + fakeID)
+				log.Info("# Add last device ID: " + fakeID)
 			}
 			devs = append(devs, &pluginapi.Device{
 				ID:     fakeID,
@@ -105,14 +105,14 @@ func watchXIDs(ctx context.Context, devs []*pluginapi.Device, xids chan<- *plugi
 		realDeviceID := extractRealDeviceID(d.ID)
 		err := nvml.RegisterEventForDevice(eventSet, nvml.XidCriticalError, realDeviceID)
 		if err != nil && strings.HasSuffix(err.Error(), "Not Supported") {
-			log.Infof("Warning: %s (%s) is too old to support healthchecking: %s. Marking it unhealthy.", realDeviceID, d.ID, err)
+			log.Info("Warning: %s (%s) is too old to support healthchecking: %s. Marking it unhealthy.", realDeviceID, d.ID, err)
 
 			xids <- d
 			continue
 		}
 
 		if err != nil {
-			log.Fatalf("Fatal error:", err)
+			log.Critical("Fatal error:", err)
 		}
 	}
 

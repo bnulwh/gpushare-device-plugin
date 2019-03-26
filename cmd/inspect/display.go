@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"text/tabwriter"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 	"k8s.io/api/core/v1"
 )
 
@@ -102,7 +102,7 @@ func displayDetails(nodeInfos []*NodeInfo) {
 	fmt.Fprintf(w, "\n")
 	fmt.Fprintf(w, "\n")
 	fmt.Fprintf(w, "Allocated/Total GPU Memory In Cluster:\t")
-	log.V(2).Infof("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
+	log.Info("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
 		strconv.FormatInt(usedGPUMemInCluster, 10))
 
 	var gpuUsage float64 = 0
@@ -219,7 +219,7 @@ func displaySummary(nodeInfos []*NodeInfo) {
 	fmt.Fprint(w, prtLine.String())
 
 	fmt.Fprintf(w, "Allocated/Total GPU Memory In Cluster:\n")
-	log.V(2).Infof("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
+	log.Info("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
 		strconv.FormatInt(usedGPUMemInCluster, 10))
 	var gpuUsage float64 = 0
 	if totalGPUMemInCluster > 0 {

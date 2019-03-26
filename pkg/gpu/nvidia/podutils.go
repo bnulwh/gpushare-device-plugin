@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/astaxie/beego/logs"
 	"k8s.io/api/core/v1"
 )
 
@@ -32,7 +32,7 @@ func getGPUIDFromPodAnnotation(pod *v1.Pod) (id int) {
 		if found {
 			id, err = strconv.Atoi(value)
 			if err != nil {
-				log.Warningf("Failed to parse dev id %s due to %v for pod %s in ns %s",
+				log.Warning("Failed to parse dev id %s due to %v for pod %s in ns %s",
 					value,
 					err,
 					pod.Name,
@@ -40,7 +40,7 @@ func getGPUIDFromPodAnnotation(pod *v1.Pod) (id int) {
 				id = -1
 			}
 		} else {
-			log.Warningf("Failed to get dev id %s for pod %s in ns %s",
+			log.Warning("Failed to get dev id %s for pod %s in ns %s",
 				pod.Name,
 				pod.Namespace)
 		}
@@ -54,7 +54,7 @@ func getAssumeTimeFromPodAnnotation(pod *v1.Pod) (assumeTime uint64) {
 	if assumeTimeStr, ok := pod.ObjectMeta.Annotations[EnvResourceAssumeTime]; ok {
 		u64, err := strconv.ParseUint(assumeTimeStr, 10, 64)
 		if err != nil {
-			log.Warningf("Failed to parse assume Timestamp %s due to %v", assumeTimeStr, err)
+			log.Warning("Failed to parse assume Timestamp %s due to %v", assumeTimeStr, err)
 		} else {
 			assumeTime = u64
 		}
@@ -65,12 +65,12 @@ func getAssumeTimeFromPodAnnotation(pod *v1.Pod) (assumeTime uint64) {
 
 // determine if the pod is GPU share pod, and is already assumed but not assigned
 func isGPUMemoryAssumedPod(pod *v1.Pod) (assumed bool) {
-	log.V(6).Infof("Determine if the pod %v is GPUSharedAssumed pod", pod)
+	log.Info("Determine if the pod %v is GPUSharedAssumed pod", pod)
 	var ok bool
 
 	// 1. Check if it's for GPU share
 	if getGPUMemoryFromPodResource(pod) <= 0 {
-		log.V(6).Infof("Pod %s in namespace %s has not GPU Memory Request, so it's not GPUSharedAssumed assumed pod.",
+		log.Info("Pod %s in namespace %s has not GPU Memory Request, so it's not GPUSharedAssumed assumed pod.",
 			pod.Name,
 			pod.Namespace)
 		return assumed
@@ -78,7 +78,7 @@ func isGPUMemoryAssumedPod(pod *v1.Pod) (assumed bool) {
 
 	// 2. Check if it already has assume time
 	if _, ok = pod.ObjectMeta.Annotations[EnvResourceAssumeTime]; !ok {
-		log.V(4).Infof("No assume timestamp for pod %s in namespace %s, so it's not GPUSharedAssumed assumed pod.",
+		log.Info("No assume timestamp for pod %s in namespace %s, so it's not GPUSharedAssumed assumed pod.",
 			pod.Name,
 			pod.Namespace)
 		return assumed
@@ -88,18 +88,18 @@ func isGPUMemoryAssumedPod(pod *v1.Pod) (assumed bool) {
 	if assigned, ok := pod.ObjectMeta.Annotations[EnvAssignedFlag]; ok {
 
 		if assigned == "false" {
-			log.V(4).Infof("Found GPUSharedAssumed assumed pod %s in namespace %s.",
+			log.Info("Found GPUSharedAssumed assumed pod %s in namespace %s.",
 				pod.Name,
 				pod.Namespace)
 			assumed = true
 		} else {
-			log.Infof("GPU assigned Flag for pod %s exists in namespace %s and its assigned status is %s, so it's not GPUSharedAssumed assumed pod.",
+			log.Info("GPU assigned Flag for pod %s exists in namespace %s and its assigned status is %s, so it's not GPUSharedAssumed assumed pod.",
 				pod.Name,
 				pod.Namespace,
 				assigned)
 		}
 	} else {
-		log.Warningf("No GPU assigned Flag for pod %s in namespace %s, so it's not GPUSharedAssumed assumed pod.",
+		log.Warning("No GPU assigned Flag for pod %s in namespace %s, so it's not GPUSharedAssumed assumed pod.",
 			pod.Name,
 			pod.Namespace)
 	}
@@ -128,7 +128,7 @@ func podIsNotRunning(pod v1.Pod) bool {
 
 	// pod is scheduled but not initialized
 	if status.Phase == v1.PodPending && podConditionTrueOnly(status.Conditions, v1.PodScheduled) {
-		log.Infof("Pod %s only has PodScheduled, is not running", pod.Name)
+		log.Info("Pod %s only has PodScheduled, is not running", pod.Name)
 		return true
 	}
 
