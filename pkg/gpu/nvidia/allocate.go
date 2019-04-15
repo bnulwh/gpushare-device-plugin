@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1alpha"
 )
 
 var (
@@ -22,18 +22,15 @@ func init() {
 }
 
 func buildErrResponse(reqs *pluginapi.AllocateRequest, podReqGPU uint) *pluginapi.AllocateResponse {
-	responses := pluginapi.AllocateResponse{}
-	for _, req := range reqs.ContainerRequests {
-		response := pluginapi.ContainerAllocateResponse{
-			Envs: map[string]string{
-				envNVGPU:               fmt.Sprintf("no-gpu-has-%dMiB-to-run", podReqGPU),
-				EnvResourceIndex:       fmt.Sprintf("-1"),
-				EnvResourceByPod:       fmt.Sprintf("%d", podReqGPU),
-				EnvResourceByContainer: fmt.Sprintf("%d", uint(len(req.DevicesIDs))),
-				EnvResourceByDev:       fmt.Sprintf("%d", getGPUMemory()),
-			},
-		}
-		responses.ContainerResponses = append(responses.ContainerResponses, &response)
+
+	responses := pluginapi.AllocateResponse{
+		Envs: map[string]string{
+			envNVGPU:               fmt.Sprintf("no-gpu-has-%d-to-run", podReqGPU),
+			EnvResourceIndex:       fmt.Sprintf("-1"),
+			EnvResourceByPod:       fmt.Sprintf("%d", podReqGPU),
+			EnvResourceByContainer: fmt.Sprintf("%d", uint(len(reqs.DevicesIDs))),
+			EnvResourceByDev:       fmt.Sprintf("%d", getGPUMemory()),
+		},
 	}
 	return &responses
 }
@@ -41,7 +38,21 @@ func buildErrResponse(reqs *pluginapi.AllocateRequest, podReqGPU uint) *pluginap
 // Allocate which return list of devices.
 func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
-	responses := pluginapi.AllocateResponse{}
+	//devs := m.devs
+	//response := pluginapi.AllocateResponse{
+	//	Envs: map[string]string{
+	//		"NVIDIA_VISIBLE_DEVICES": strings.Join(reqs.DevicesIDs, ","),
+	//	},
+	//}
+	//
+	//for _, id := range reqs.DevicesIDs {
+	//	if !deviceExists(devs, id) {
+	//		return nil, fmt.Errorf("invalid allocation request: unknown device: %s", id)
+	//	}
+	//}
+	//
+	//return &response, nil
+	response := pluginapi.AllocateResponse{}
 
 	log.Info("----Allocating GPU for gpu mem is started----")
 	var (
@@ -50,10 +61,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 		assumePod *v1.Pod
 	)
 
-	// podReqGPU = uint(0)
-	for _, req := range reqs.ContainerRequests {
-		podReqGPU += uint(len(req.DevicesIDs))
-	}
+	podReqGPU = uint(len(reqs.DevicesIDs))
 	log.Info("RequestPodGPUs: %d", podReqGPU)
 
 	m.Lock()
@@ -108,18 +116,14 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 		}
 
 		// 1. Create container requests
-		for _, req := range reqs.ContainerRequests {
-			reqGPU := uint(len(req.DevicesIDs))
-			response := pluginapi.ContainerAllocateResponse{
-				Envs: map[string]string{
-					envNVGPU:               candidateDevID,
-					EnvResourceIndex:       fmt.Sprintf("%d", id),
-					EnvResourceByPod:       fmt.Sprintf("%d", podReqGPU),
-					EnvResourceByContainer: fmt.Sprintf("%d", reqGPU),
-					EnvResourceByDev:       fmt.Sprintf("%d", getGPUMemory()),
-				},
-			}
-			responses.ContainerResponses = append(responses.ContainerResponses, &response)
+
+		reqGPU := uint(len(reqs.DevicesIDs))
+		response.Envs = map[string]string{
+			envNVGPU:               candidateDevID,
+			EnvResourceIndex:       fmt.Sprintf("%d", id),
+			EnvResourceByPod:       fmt.Sprintf("%d", podReqGPU),
+			EnvResourceByContainer: fmt.Sprintf("%d", reqGPU),
+			EnvResourceByDev:       fmt.Sprintf("%d", getGPUMemory()),
 		}
 
 		// 2. Update Pod spec
@@ -152,12 +156,12 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 		return buildErrResponse(reqs, podReqGPU), nil
 	}
 
-	log.Info("new allocated GPUs info %v", &responses)
+	log.Info("new allocated GPUs info %v", &response)
 	log.Info("----Allocating GPU for gpu mem is ended----")
 	// // Add this to make sure the container is created at least
 	// currentTime := time.Now()
 
 	// currentTime.Sub(lastAllocateTime)
 
-	return &responses, nil
+	return &response, nil
 }

@@ -132,7 +132,10 @@ func podIsNotRunning(pod v1.Pod) bool {
 		return true
 	}
 
-	return status.Phase == v1.PodFailed || status.Phase == v1.PodSucceeded || (pod.DeletionTimestamp != nil && notRunning(status.ContainerStatuses)) || (status.Phase == v1.PodPending && podConditionTrueOnly(status.Conditions, v1.PodScheduled))
+	return status.Phase == v1.PodFailed ||
+		status.Phase == v1.PodSucceeded ||
+		(pod.DeletionTimestamp != nil && notRunning(status.ContainerStatuses)) ||
+		(status.Phase == v1.PodPending && podConditionTrueOnly(status.Conditions, v1.PodScheduled))
 }
 
 // notRunning returns true if every status is terminated or waiting, or the status list

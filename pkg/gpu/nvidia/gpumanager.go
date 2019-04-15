@@ -8,7 +8,7 @@ import (
 	"github.com/NVIDIA/gpu-monitoring-tools/bindings/go/nvml"
 	log "github.com/astaxie/beego/logs"
 	"github.com/fsnotify/fsnotify"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1alpha"
 )
 
 type sharedGPUManager struct {
@@ -28,8 +28,8 @@ func (ngm *sharedGPUManager) Run() error {
 	log.Info("Loading NVML")
 
 	if err := nvml.Init(); err != nil {
-		log.Info("Failed to initialize NVML: %s.", err)
-		log.Info("If this is a GPU node, did you set the docker default runtime to `nvidia`?")
+		log.Warning("Failed to initialize NVML: %s.", err)
+		log.Warning("If this is a GPU node, did you set the docker default runtime to `nvidia`?")
 		select {}
 	}
 	defer func() { log.Info("Shutdown of NVML returned:", nvml.Shutdown()) }()
@@ -43,7 +43,7 @@ func (ngm *sharedGPUManager) Run() error {
 	log.Info("Starting FS watcher.")
 	watcher, err := newFSWatcher(pluginapi.DevicePluginPath)
 	if err != nil {
-		log.Info("Failed to created FS watcher.")
+		log.Warning("Failed to created FS watcher.")
 		return err
 	}
 	defer watcher.Close()
@@ -88,7 +88,7 @@ L:
 				t := time.Now()
 				timestamp := fmt.Sprint(t.Format("20060102150405"))
 				log.Info("generate core dump")
-				coredump("/etc/kubernetes/go_" + timestamp + ".txt")
+				coreDump("/etc/kubernetes/go_" + timestamp + ".txt")
 			default:
 				log.Info("Received signal \"%v\", shutting down.", s)
 				devicePlugin.Stop()

@@ -21,7 +21,7 @@ const (
 	envNVGPUID        = "SHARED_GPU_MEM_IDX"
 	envPodGPUMemory   = "SHARED_GPU_MEM_POD"
 	envTOTALGPUMEMORY = "SHARED_GPU_MEM_DEV"
-	logPath           = "/var/log/device-plugin"
+	logPath           = "/var/log"
 )
 
 func beegoInit() {
@@ -34,7 +34,7 @@ func beegoInit() {
 			fmt.Printf("mkdir %s failed: %v", logPath, err)
 		}
 	}
-	err := log.SetLogger(log.AdapterMultiFile, `{"filename":"/var/log/device-plugin/nvidia.log","separate":["emergency", "alert", 
+	err := log.SetLogger(log.AdapterMultiFile, `{"filename":"/var/log/inspect.log","separate":["emergency", "alert", 
 			"critical", "error", "warning", "notice", "info", "debug"]}`)
 	if err != nil {
 		fmt.Println(err)
@@ -90,13 +90,13 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Printf("Failed due to %v", err)
+		log.Warning("Failed due to %v", err)
 		os.Exit(1)
 	}
 
 	nodeInfos, err := buildAllNodeInfos(pods, nodes)
 	if err != nil {
-		fmt.Printf("Failed due to %v", err)
+		log.Warning("Failed due to %v", err)
 		os.Exit(1)
 	}
 	if *details {

@@ -3,16 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
-	"text/tabwriter"
 
 	log "github.com/astaxie/beego/logs"
 	"k8s.io/api/core/v1"
 )
 
 func displayDetails(nodeInfos []*NodeInfo) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	//w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	var (
 		totalGPUMemInCluster int64
 		usedGPUMemInCluster  int64
@@ -24,7 +22,7 @@ func displayDetails(nodeInfos []*NodeInfo) {
 		if len(nodeInfo.node.Status.Addresses) > 0 {
 			//address = nodeInfo.node.Status.Addresses[0].Address
 			for _, addr := range nodeInfo.node.Status.Addresses {
-				if addr.Type == v1.NodeInternalIP {
+				if addr.Type == v1.NodeExternalIP {
 					address = addr.Address
 					break
 				}
@@ -36,10 +34,10 @@ func displayDetails(nodeInfos []*NodeInfo) {
 			continue
 		}
 
-		fmt.Fprintf(w, "\n")
-		fmt.Fprintf(w, "NAME:\t%s\n", nodeInfo.node.Name)
-		fmt.Fprintf(w, "IPADDRESS:\t%s\n", address)
-		fmt.Fprintf(w, "\n")
+		log.Info("===================================================")
+		log.Info("NAME:\t%s", nodeInfo.node.Name)
+		log.Info("IPADDRESS:\t%s", address)
+		log.Info("===================================================")
 
 		usedGPUMemInNode := 0
 		var buf bytes.Buffer
@@ -52,7 +50,7 @@ func displayDetails(nodeInfos []*NodeInfo) {
 			buf.WriteString("Pending(Allocated)\t")
 		}
 		buf.WriteString("\n")
-		fmt.Fprintf(w, buf.String())
+		log.Info(buf.String())
 
 		var buffer bytes.Buffer
 		for i, dev := range nodeInfo.devs {
@@ -78,30 +76,30 @@ func displayDetails(nodeInfos []*NodeInfo) {
 		if prtLineLen == 0 {
 			prtLineLen = buffer.Len() + 10
 		}
-		fmt.Fprintf(w, buffer.String())
+		log.Info(buffer.String())
 
 		var gpuUsageInNode float64 = 0
 		if totalGPUMemInNode > 0 {
 			gpuUsageInNode = float64(usedGPUMemInNode) / float64(totalGPUMemInNode) * 100
 		} else {
-			fmt.Fprintf(w, "\n")
+			log.Info("-----------------------------")
 		}
 
-		fmt.Fprintf(w, "Allocated :\t%d (%d%%)\t\n", usedGPUMemInNode, int64(gpuUsageInNode))
-		fmt.Fprintf(w, "Total :\t%d \t\n", nodeInfo.gpuTotalMemory)
-		// fmt.Fprintf(w, "-----------------------------------------------------------------------------------------\n")
+		log.Info("Allocated :\t%d (%d%%)", usedGPUMemInNode, int64(gpuUsageInNode))
+		log.Info("Total :\t%d ", nodeInfo.gpuTotalMemory)
+		// log.Info( "-----------------------------------------------------------------------------------------\n")
 		var prtLine bytes.Buffer
 		for i := 0; i < prtLineLen; i++ {
 			prtLine.WriteString("-")
 		}
 		prtLine.WriteString("\n")
-		fmt.Fprintf(w, prtLine.String())
+		log.Info(prtLine.String())
 		totalGPUMemInCluster += int64(totalGPUMemInNode)
 		usedGPUMemInCluster += int64(usedGPUMemInNode)
 	}
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "Allocated/Total GPU Memory In Cluster:\t")
+	log.Info("")
+	log.Info("")
+	log.Info("Allocated/Total GPU Memory In Cluster:\t")
 	log.Info("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
 		strconv.FormatInt(usedGPUMemInCluster, 10))
 
@@ -109,13 +107,13 @@ func displayDetails(nodeInfos []*NodeInfo) {
 	if totalGPUMemInCluster > 0 {
 		gpuUsage = float64(usedGPUMemInCluster) / float64(totalGPUMemInCluster) * 100
 	}
-	fmt.Fprintf(w, "%s/%s (%d%%)\t\n",
+	log.Info("%s/%s (%d%%)",
 		strconv.FormatInt(usedGPUMemInCluster, 10),
 		strconv.FormatInt(totalGPUMemInCluster, 10),
 		int64(gpuUsage))
-	// fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", ...)
+	// log.Info( "%s\t%s\t%s\t%s\t%s\n", ...)
 
-	_ = w.Flush()
+	//_ = w.Flush()
 }
 
 func getMaxGPUCount(nodeInfos []*NodeInfo) (max int) {
@@ -129,7 +127,7 @@ func getMaxGPUCount(nodeInfos []*NodeInfo) (max int) {
 }
 
 func displaySummary(nodeInfos []*NodeInfo) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	//w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	var (
 		maxGPUCount          int
 		totalGPUMemInCluster int64
@@ -152,14 +150,14 @@ func displaySummary(nodeInfos []*NodeInfo) {
 	}
 	buffer.WriteString(fmt.Sprintf("GPU Memory(%s)\n", memoryUnit))
 
-	// fmt.Fprintf(w, "NAME\tIPADDRESS\tROLE\tGPU(Allocated/Total)\tPENDING(Allocated)\n")
-	fmt.Fprintf(w, buffer.String())
+	// log.Info( "NAME\tIPADDRESS\tROLE\tGPU(Allocated/Total)\tPENDING(Allocated)\n")
+	log.Info(buffer.String())
 	for _, nodeInfo := range nodeInfos {
 		address := "unknown"
 		if len(nodeInfo.node.Status.Addresses) > 0 {
 			// address = nodeInfo.node.Status.Addresses[0].Address
 			for _, addr := range nodeInfo.node.Status.Addresses {
-				if addr.Type == v1.NodeInternalIP {
+				if v1.NodeInternalIP == addr.Type {
 					address = addr.Address
 					break
 				}
@@ -201,7 +199,7 @@ func displaySummary(nodeInfos []*NodeInfo) {
 		}
 
 		buf.WriteString(fmt.Sprintf("%s\n", nodeGPUMemInfo))
-		fmt.Fprintf(w, buf.String())
+		log.Info(buf.String())
 
 		if prtLineLen == 0 {
 			prtLineLen = buf.Len() + 20
@@ -210,28 +208,28 @@ func displaySummary(nodeInfos []*NodeInfo) {
 		usedGPUMemInCluster += int64(usedGPUMemInNode)
 		totalGPUMemInCluster += int64(totalGPUMemInNode)
 	}
-	// fmt.Fprintf(w, "-----------------------------------------------------------------------------------------\n")
+	// log.Info( "-----------------------------------------------------------------------------------------\n")
 	var prtLine bytes.Buffer
 	for i := 0; i < prtLineLen; i++ {
 		prtLine.WriteString("-")
 	}
 	prtLine.WriteString("\n")
-	fmt.Fprint(w, prtLine.String())
+	log.Info(prtLine.String())
 
-	fmt.Fprintf(w, "Allocated/Total GPU Memory In Cluster:\n")
+	log.Info("Allocated/Total GPU Memory In Cluster:\n")
 	log.Info("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
 		strconv.FormatInt(usedGPUMemInCluster, 10))
 	var gpuUsage float64 = 0
 	if totalGPUMemInCluster > 0 {
 		gpuUsage = float64(usedGPUMemInCluster) / float64(totalGPUMemInCluster) * 100
 	}
-	fmt.Fprintf(w, "%s/%s (%d%%)\t\n",
+	log.Info("%s/%s (%d%%)\t\n",
 		strconv.FormatInt(usedGPUMemInCluster, 10),
 		strconv.FormatInt(totalGPUMemInCluster, 10),
 		int64(gpuUsage))
-	// fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", ...)
+	// log.Info( "%s\t%s\t%s\t%s\t%s\n", ...)
 
-	_ = w.Flush()
+	//_ = w.Flush()
 }
 
 func getGPUMemoryInPod(pod v1.Pod) int {

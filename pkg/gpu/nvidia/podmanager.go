@@ -75,7 +75,7 @@ func patchGPUCount(gpuCount int) error {
 	newNode.Status.Allocatable[resourceCount] = *resource.NewQuantity(int64(gpuCount), resource.DecimalSI)
 	// content := fmt.Sprintf(`[{"op": "add", "path": "/status/capacity/shared-gpu~gpu-count", "value": "%d"}]`, gpuCount)
 	// _, err = clientset.CoreV1().Nodes().PatchStatus(nodeName, []byte(content))
-	_, _, err = nodeutil.PatchNodeStatus(clientset.CoreV1(), types.NodeName(nodeName), node, newNode)
+	_, err = nodeutil.PatchNodeStatus(clientset.CoreV1(), types.NodeName(nodeName), node, newNode)
 	if err != nil {
 		log.Info("Failed to update Capacity %s.", resourceCount)
 	} else {

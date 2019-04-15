@@ -24,7 +24,10 @@ func StackTrace(all bool) string {
 	return string(buf)
 }
 
-func coredump(fileName string) {
+func coreDump(fileName string) {
 	log.Info("Dump stacktrace to ", fileName)
-	ioutil.WriteFile(fileName, []byte(StackTrace(true)), 0644)
+	err := ioutil.WriteFile(fileName, []byte(StackTrace(true)), 0644)
+	if err != nil {
+		log.Error("Write file %s error: %s", fileName, err)
+	}
 }

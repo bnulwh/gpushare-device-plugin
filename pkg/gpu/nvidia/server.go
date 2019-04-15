@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
+	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1alpha"
 )
 
 // NvidiaDevicePlugin implements the Kubernetes device plugin API
@@ -74,10 +74,6 @@ func (m *NvidiaDevicePlugin) GetDeviceNameByIndex(index uint) (name string, foun
 	return name, found
 }
 
-func (m *NvidiaDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
-	return &pluginapi.DevicePluginOptions{}, nil
-}
-
 // dial establishes the gRPC communication with the registered device plugin.
 func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error) {
 	c, err := grpc.Dial(unixSocketPath, grpc.WithInsecure(), grpc.WithBlock(),
@@ -116,7 +112,7 @@ func (m *NvidiaDevicePlugin) Start() error {
 	if err != nil {
 		return err
 	}
-	conn.Close()
+	err = conn.Close()
 
 	go m.healthcheck()
 
@@ -142,9 +138,11 @@ func (m *NvidiaDevicePlugin) Stop() error {
 func (m *NvidiaDevicePlugin) Register(kubeletEndpoint, resourceName string) error {
 	conn, err := dial(kubeletEndpoint, 5*time.Second)
 	if err != nil {
+		log.Critical("dial %v failed: %s", kubeletEndpoint, err)
 		return err
 	}
 	defer conn.Close()
+	log.Info("dial %v success", kubeletEndpoint)
 
 	client := pluginapi.NewRegistrationClient(conn)
 	reqt := &pluginapi.RegisterRequest{
@@ -155,6 +153,7 @@ func (m *NvidiaDevicePlugin) Register(kubeletEndpoint, resourceName string) erro
 
 	_, err = client.Register(context.Background(), reqt)
 	if err != nil {
+		log.Critical("register failed: %s", err)
 		return err
 	}
 	return nil
@@ -162,7 +161,12 @@ func (m *NvidiaDevicePlugin) Register(kubeletEndpoint, resourceName string) erro
 
 // ListAndWatch lists devices and update that list according to the health status
 func (m *NvidiaDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DevicePlugin_ListAndWatchServer) error {
-	s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+	err := s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+	if err != nil {
+		log.Warning("send response failed: %v", err)
+	} else {
+		log.Info("send response success, devs: %v", m.devs)
+	}
 
 	for {
 		select {
@@ -171,17 +175,18 @@ func (m *NvidiaDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.Device
 		case d := <-m.health:
 			// FIXME: there is no way to recover from the Unhealthy state.
 			d.Health = pluginapi.Unhealthy
-			s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+			err = s.Send(&pluginapi.ListAndWatchResponse{Devices: m.devs})
+			if err != nil {
+				log.Warning("send response failed: %v", err)
+			} else {
+				log.Info("send response success, devs: %v", m.devs)
+			}
 		}
 	}
 }
 
 func (m *NvidiaDevicePlugin) unhealthy(dev *pluginapi.Device) {
 	m.health <- dev
-}
-
-func (m *NvidiaDevicePlugin) PreStartContainer(context.Context, *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
-	return &pluginapi.PreStartContainerResponse{}, nil
 }
 
 func (m *NvidiaDevicePlugin) cleanup() error {
@@ -216,18 +221,21 @@ func (m *NvidiaDevicePlugin) healthcheck() {
 func (m *NvidiaDevicePlugin) Serve() error {
 	err := m.Start()
 	if err != nil {
-		log.Info("Could not start device plugin: %s", err)
+		log.Critical("Could not start device plugin: %s", err)
 		return err
 	}
 	log.Info("Starting to serve on", m.socket)
 
 	err = m.Register(pluginapi.KubeletSocket, resourceName)
 	if err != nil {
-		log.Info("Could not register device plugin: %s", err)
-		m.Stop()
+		log.Critical("Could not register device plugin: %s", err)
+		err2 := m.Stop()
+		if err2 != nil {
+			log.Error("stop device plugin failed: %s", err2)
+		}
 		return err
 	}
-	log.Info("Registered device plugin with Kubelet")
+	log.Info("Registered device plugin with Kubelet, resource name: %s", resourceName)
 
 	return nil
 }
