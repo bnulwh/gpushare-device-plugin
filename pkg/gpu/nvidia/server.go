@@ -20,6 +20,7 @@ type NvidiaDevicePlugin struct {
 	realDevNames []string
 	devNameMap   map[string]uint
 	devIndxMap   map[uint]string
+	fakeNameMap  map[string]string
 	socket       string
 	mps          bool
 	healthCheck  bool
@@ -33,7 +34,7 @@ type NvidiaDevicePlugin struct {
 
 // NewNvidiaDevicePlugin returns an initialized NvidiaDevicePlugin
 func NewNvidiaDevicePlugin(mps, healthCheck bool) *NvidiaDevicePlugin {
-	devs, devNameMap := getDevices()
+	devs, devNameMap, devIndxMap, fakeNameMap := getDevices()
 	devList := []string{}
 
 	for dev, _ := range devNameMap {
@@ -52,6 +53,8 @@ func NewNvidiaDevicePlugin(mps, healthCheck bool) *NvidiaDevicePlugin {
 		devs:         devs,
 		realDevNames: devList,
 		devNameMap:   devNameMap,
+		devIndxMap:   devIndxMap,
+		fakeNameMap:  fakeNameMap,
 		socket:       serverSock,
 		mps:          mps,
 		healthCheck:  healthCheck,

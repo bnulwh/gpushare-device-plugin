@@ -115,6 +115,9 @@ func getAllSharedGPUNode() ([]v1.Node, error) {
 	for _, item := range allNodes.Items {
 		if isGPUSharingNode(item) {
 			nodes = append(nodes, item)
+			log.Info("Node: %s, GPU Share: True", item.Name)
+		} else {
+			log.Info("Node: %s, GPU Share: False", item.Name)
 		}
 	}
 
@@ -127,8 +130,9 @@ func gpuMemoryInPod(pod v1.Pod) int {
 	for _, container := range containers {
 		if val, ok := container.Resources.Limits[resourceName]; ok {
 			total += int(val.Value())
+			log.Info("Container: %s ,Pod: %s, Node: %s ,Use GPU Memory: %d",
+				container.Name, pod.Name, pod.Spec.NodeName, int(val.Value()))
 		}
 	}
-
 	return total
 }

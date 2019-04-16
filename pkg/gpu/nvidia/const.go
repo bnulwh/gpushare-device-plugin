@@ -29,6 +29,8 @@ const (
 	EnvAssignedFlag        = "SHARED_GPU_MEM_ASSIGNED"
 	EnvResourceAssumeTime  = "SHARED_GPU_MEM_ASSUME_TIME"
 	EnvResourceAssignTime  = "SHARED_GPU_MEM_ASSIGN_TIME"
+	envCUDA                = "CUDA_VISIBLE_DEVICES"
+	envPerProcGPUMemFract  = "PER_PROCESS_GPU_MEMORY_FRACTION"
 
 	GiBPrefix = MemoryUnit("GiB")
 	MiBPrefix = MemoryUnit("MiB")

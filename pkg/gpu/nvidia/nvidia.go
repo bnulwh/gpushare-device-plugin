@@ -133,12 +133,14 @@ func getDeviceInfo(device nvml.Device) (str string, err error) {
 	return string(buffer.Bytes()), nil
 }
 
-func getDevices() ([]*pluginapi.Device, map[string]uint) {
+func getDevices() ([]*pluginapi.Device, map[string]uint, map[uint]string, map[string]string) {
 	n, err := nvml.GetDeviceCount()
 	check(err)
 	displayDriverVersion()
 	var devs []*pluginapi.Device
 	realDevNames := map[string]uint{}
+	realDevIndex := map[uint]string{}
+	fakeDevNames := map[string]string{}
 	for i := uint(0); i < n; i++ {
 		d, err := nvml.NewDevice(i)
 		check(err)
@@ -151,6 +153,7 @@ func getDevices() ([]*pluginapi.Device, map[string]uint) {
 		_, err = fmt.Sscanf(d.Path, "/dev/nvidia%d", &id)
 		check(err)
 		realDevNames[d.UUID] = id
+		realDevIndex[id] = d.UUID
 		// var KiB uint64 = 1024
 		log.Info("# device %s's Memory: %d", d.UUID, uint(*d.Memory))
 		if getGPUMemory() == uint(0) {
@@ -159,6 +162,7 @@ func getDevices() ([]*pluginapi.Device, map[string]uint) {
 		gmem := getGPUMemory()
 		for j := uint(0); j < gmem; j++ {
 			fakeID := generateFakeDeviceID(d.UUID, j)
+			fakeDevNames[fakeID] = d.Path
 			if j == 0 {
 				log.Info("# Add first device ID: " + fakeID)
 			}
@@ -172,7 +176,7 @@ func getDevices() ([]*pluginapi.Device, map[string]uint) {
 		}
 	}
 
-	return devs, realDevNames
+	return devs, realDevNames, realDevIndex, fakeDevNames
 }
 
 func deviceExists(devs []*pluginapi.Device, id string) bool {

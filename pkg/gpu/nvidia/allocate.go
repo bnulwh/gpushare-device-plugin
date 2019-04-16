@@ -52,6 +52,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	//}
 	//
 	//return &response, nil
+	log.Info("request: %v", reqs)
 	response := pluginapi.AllocateResponse{}
 
 	log.Info("----Allocating GPU for gpu mem is started----")
@@ -118,15 +119,25 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 		// 1. Create container requests
 
 		reqGPU := uint(len(reqs.DevicesIDs))
+		gmem := getGPUMemory()
 		response.Envs = map[string]string{
 			envNVGPU:               candidateDevID,
 			EnvResourceIndex:       fmt.Sprintf("%d", id),
 			EnvResourceByPod:       fmt.Sprintf("%d", podReqGPU),
 			EnvResourceByContainer: fmt.Sprintf("%d", reqGPU),
-			EnvResourceByDev:       fmt.Sprintf("%d", getGPUMemory()),
+			EnvResourceByDev:       fmt.Sprintf("%d", gmem),
+			envCUDA:                fmt.Sprintf("%d", id),
+			envPerProcGPUMemFract:  fmt.Sprintf("%f", float64(gmem)/float64(reqGPU)),
 		}
 
-		// 2. Update Pod spec
+		// 2. Allocate devices
+		devices, err := m.getDevicesFromRequest(reqs.DevicesIDs)
+		if err != nil {
+			return buildErrResponse(reqs, podReqGPU), err
+		}
+		response.Devices = devices
+
+		// 3. Update Pod spec
 		newPod := updatePodAnnotations(assumePod)
 		_, err = clientset.CoreV1().Pods(newPod.Namespace).Update(newPod)
 		if err != nil {
@@ -164,4 +175,21 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 	// currentTime.Sub(lastAllocateTime)
 
 	return &response, nil
+}
+func (m *NvidiaDevicePlugin) getDevicesFromRequest(devs []string) ([]*pluginapi.DeviceSpec, error) {
+	var devices []*pluginapi.DeviceSpec
+	for _, dev := range devs {
+		devId, found := m.fakeNameMap[dev]
+		if !found {
+			log.Error("use error dev: %s", dev)
+			return nil, fmt.Errorf("use error dev: %s", dev)
+		}
+		device := &pluginapi.DeviceSpec{
+			ContainerPath: dev,
+			HostPath:      devId,
+			Permissions:   "rwm",
+		}
+		devices = append(devices, device)
+	}
+	return devices, nil
 }
