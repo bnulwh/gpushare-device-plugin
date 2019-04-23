@@ -127,7 +127,7 @@ func (m *NvidiaDevicePlugin) Allocate(ctx context.Context,
 			EnvResourceByContainer: fmt.Sprintf("%d", reqGPU),
 			EnvResourceByDev:       fmt.Sprintf("%d", gmem),
 			envCUDA:                fmt.Sprintf("%d", id),
-			envPerProcGPUMemFract:  fmt.Sprintf("%f", float64(gmem)/float64(reqGPU)),
+			envPerProcGPUMemFract:  fmt.Sprintf("%f", float64(reqGPU)*0.7/float64(gmem)),
 		}
 
 		// 2. Allocate devices

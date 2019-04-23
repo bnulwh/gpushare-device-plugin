@@ -134,7 +134,8 @@ func displaySummary(nodeInfos []*NodeInfo) {
 		usedGPUMemInCluster  int64
 		prtLineLen           int
 	)
-
+	totalGPUMemInCluster = 0
+	usedGPUMemInCluster = 0
 	hasPendingGPU := hasPendingGPUMemory(nodeInfos)
 
 	maxGPUCount = getMaxGPUCount(nodeInfos)
@@ -148,7 +149,7 @@ func displaySummary(nodeInfos []*NodeInfo) {
 	if hasPendingGPU {
 		buffer.WriteString("PENDING(Allocated)\t")
 	}
-	buffer.WriteString(fmt.Sprintf("GPU Memory(%s)\n", memoryUnit))
+	buffer.WriteString(fmt.Sprintf("GPU Memory(%s)", memoryUnit))
 
 	// log.Info( "NAME\tIPADDRESS\tROLE\tGPU(Allocated/Total)\tPENDING(Allocated)\n")
 	log.Info(buffer.String())
@@ -198,7 +199,7 @@ func displaySummary(nodeInfos []*NodeInfo) {
 			buf.WriteString(fmt.Sprintf("%s\t", pendingGPUMemInfo))
 		}
 
-		buf.WriteString(fmt.Sprintf("%s\n", nodeGPUMemInfo))
+		buf.WriteString(fmt.Sprintf("%s", nodeGPUMemInfo))
 		log.Info(buf.String())
 
 		if prtLineLen == 0 {
@@ -216,14 +217,14 @@ func displaySummary(nodeInfos []*NodeInfo) {
 	prtLine.WriteString("\n")
 	log.Info(prtLine.String())
 
-	log.Info("Allocated/Total GPU Memory In Cluster:\n")
+	log.Info("Allocated/Total GPU Memory In Cluster:")
 	log.Info("gpu: %s, allocated GPU Memory %s", strconv.FormatInt(totalGPUMemInCluster, 10),
 		strconv.FormatInt(usedGPUMemInCluster, 10))
 	var gpuUsage float64 = 0
 	if totalGPUMemInCluster > 0 {
 		gpuUsage = float64(usedGPUMemInCluster) / float64(totalGPUMemInCluster) * 100
 	}
-	log.Info("%s/%s (%d%%)\t\n",
+	log.Info("%s/%s (%d%%)\t",
 		strconv.FormatInt(usedGPUMemInCluster, 10),
 		strconv.FormatInt(totalGPUMemInCluster, 10),
 		int64(gpuUsage))
